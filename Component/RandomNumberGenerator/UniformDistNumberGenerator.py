@@ -5,11 +5,13 @@ from Component.RandomNumberGenerator.RandomNumberGenerator import RandomNumberGe
 
 class UniformDistNumberGenerator(RandomNumberGenerator):
     def __init__(self):
+        self._generator_fnc = random.uniform
         self._low = 0
         self._high = 1
 
     def generate(self):
-        return random.uniform(self._low, self._high)
+        # return random.uniform(self._low, self._high)
+        return self._generator_fnc(self._low, self._high)
 
     class Builder:
         def __init__(self):
@@ -21,6 +23,10 @@ class UniformDistNumberGenerator(RandomNumberGenerator):
 
         def set_high(self, high):
             self._dist._high = high
+            return self
+
+        def set_generate_only_whole_numbers(self):
+            self._dist._generator_fnc = random.randint
             return self
 
         def build(self):
