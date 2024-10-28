@@ -5,6 +5,7 @@ from Component.RandomNumberGenerator.UniformDistNumberGenerator import UniformDi
 
 class FirstImprovementLocalSearch:
     def __init__(self):
+        self._value_bit_width = 16
         self._uniform_generator = self._create_uniform_generator()
 
         self._evaluation_function = None
@@ -67,15 +68,14 @@ class FirstImprovementLocalSearch:
         return x_value  # Return original if no valid neighbor found
 
     def _real_to_binary(self, x_value):
-        # Convert real value in [-10, 10] to a 16-bit integer
         normalized = int(
             ((x_value - self._domain_lower_bound) / (self._domain_upper_bound - self._domain_lower_bound)) * (
-                    2 ** 16 - 1))
+                    2 ** self._value_bit_width - 1))
         return normalized
 
     def _binary_to_real(self, binary_value):
-        # Convert 16-bit integer back to real in [-10, 10]
-        real_value = self._domain_lower_bound + (binary_value / (2 ** 16 - 1)) * (
+
+        real_value = self._domain_lower_bound + (binary_value / (2 ** self._value_bit_width - 1)) * (
                 self._domain_upper_bound - self._domain_lower_bound)
         return real_value
 
