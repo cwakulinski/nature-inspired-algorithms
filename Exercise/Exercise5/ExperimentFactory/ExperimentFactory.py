@@ -43,7 +43,7 @@ class ExperimentFactory:
         self.experiment_algorithm_builder.set_lower_bound(data_instance.lower_bound)
         self.experiment_algorithm_builder.set_upper_bound(data_instance.upper_bound)
         self.experiment_algorithm_builder.set_evaluation_function(data_instance.evaluation_function)
-        self.experiment_algorithm_builder.set_init_population(data_instance.get_init_population())
+        self.experiment_algorithm_builder.set_population_size(data_instance.population_size)
 
     def build(self):
         self.experiment_builder.set_experiment_algorithm_instance(

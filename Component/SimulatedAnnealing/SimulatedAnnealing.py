@@ -116,16 +116,7 @@ class SimulatedAnnealing:
     def _adjust_real_neighbor(self, x_value):
         return x_value + self._gauss_generator.generate()
 
-    def _real_to_binary(self, x_value):
-        normalized = int(
-            ((x_value - self._domain_lower_bound) / (self._domain_upper_bound - self._domain_lower_bound)) * (
-                    2 ** self._value_bit_width - 1))
-        return normalized
 
-    def _binary_to_real(self, binary_value):
-        real_value = self._domain_lower_bound + (binary_value / (2 ** self._value_bit_width - 1)) * (
-                self._domain_upper_bound - self._domain_lower_bound)
-        return real_value
 
     def _is_num_in_bounds(self, num):
         return self._domain_lower_bound <= num <= self._domain_upper_bound

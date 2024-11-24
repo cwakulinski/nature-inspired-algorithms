@@ -9,9 +9,8 @@ class Exercise5(Exercise):
     @staticmethod
     def _create_experiments_instances():
         return [
-            # ExperimentFactory().set_ackley_benchmark_function_variant().set_binary_representation_value().build(),
+            ExperimentFactory().set_ackley_benchmark_function_variant().set_binary_representation_value().build(),
             ExperimentFactory().set_ackley_benchmark_function_variant().set_real_representation_value().build(),
-
             ExperimentFactory().set_sin_cot_function_variant().set_binary_representation_value().build(),
             ExperimentFactory().set_sin_cot_function_variant().set_real_representation_value().build(),
         ]

@@ -1,9 +1,11 @@
 import copy
-import math
 from enum import Enum
+import random
 
-from Component.RandomNumberGenerator.NormalDistNumberGenerator import NormalDistNumberGenerator
-from Component.RandomNumberGenerator.UniformDistNumberGenerator import UniformDistNumberGenerator
+from Component.EvolutionaryAlgorithm.EvolutionaryAlgorithmPopulationIndividual.EvolutionaryAlgorithmBinIndividual import \
+    EvolutionaryAlgorithmBinIndividual
+from Component.EvolutionaryAlgorithm.EvolutionaryAlgorithmPopulationIndividual.EvolutionaryAlgorithmRealIndividual import \
+    EvolutionaryAlgorithmRealIndividual
 
 
 class ValuesRepresentationType(Enum):
@@ -13,111 +15,78 @@ class ValuesRepresentationType(Enum):
 
 class EvolutionaryAlgorithm:
     def __init__(self):
-        self._value_bit_width = 16  # Bit width for binary representation
-
-        # Random number generators
-        self._int_generator = self._create_int_generator()
-        self._gauss_generator = self._create_gauss_generator()
-        self._uniform_zero_to_one_float_generator = self._create_float_generator()
-
         # Problem-specific properties
-        self._evaluation_function = None
-        self._domain_lower_bound = None
-        self._domain_upper_bound = None
-        self._current_population = None
+        self._values_representation_type = None
+        self._current_base_population = None
+        self._current_children_population = []
 
         # Representation and solutions
-        self._values_representation_type = None
-        self._current_best_fitness = None
-        self._best_solution = None
-        self._tau = .5  # Learning rate for step size mutation
-
-    @staticmethod
-    def _create_gauss_generator():
-        return NormalDistNumberGenerator.Builder() \
-            .set_mean(0) \
-            .set_stddev(1) \
-            .build()
-
-    @staticmethod
-    def _create_int_generator():
-        return UniformDistNumberGenerator.Builder() \
-            .set_generate_only_whole_numbers() \
-            .set_low(0) \
-            .set_high(15) \
-            .build()
-
-    @staticmethod
-    def _create_float_generator():
-        return UniformDistNumberGenerator.Builder() \
-            .set_low(0) \
-            .set_high(1) \
-            .build()
+        self._current_best_fitness = float("inf")
 
     def perform_step(self):
-        self._evaluate_population()
-        self._mutate_population()
+        self._create_children_population()
+        self._create_new_base_population()
+        self._recalculate_current_best_fitness()
 
         return self._current_best_fitness  # Return best fitness so far
 
-    def _mutate_population(self):
-        # Adjust each individual in the population
-        new_population = []
-        for individual, sigma in self._current_population:
-            mutated_individual, mutated_sigma = self._mutate_individual(individual, sigma)
-            new_population.append((mutated_individual, mutated_sigma))
-        self._current_population = new_population
 
-    def _mutate_individual(self, individual, sigma):
-        # Uncorrelated Mutation with One Step Size
-        # Mutate the step size (sigma)
+    def _create_children_population(self):
+        self._current_children_population = []
 
-        if self._values_representation_type == ValuesRepresentationType.BINARY:
-            # For binary representation, σ is irrelevant
-            mutated_sigma = sigma
+        for _ in range(len(self._current_base_population)):
+            # Select two parents using tournament selection
+            parent1 = self._tournament_selection(self._current_base_population)
+            parent2 = self._tournament_selection(self._current_base_population)
+
+            # Perform crossover to create a child
+            child = parent1.crossover(parent2)
+
+            mutated_child = child.mutate()
+
+            # Append the new child to the children population
+            self._current_children_population.append(mutated_child)
+
+
+    def _tournament_selection(self, population, k=2, probability=0.9):
+        # Randomly pick `k` individuals for the tournament
+        tournament = random.sample(population, k)
+
+        # Sort tournament participants by fitness ( the best first)
+        tournament.sort(key=lambda ind: ind.fitness)
+
+        # Select the winner probabilistically
+        if random.random() < probability:
+            return tournament[0]  # Best individual
         else:
-            # Mutate the step size (σ) for real-valued representation
-            mutated_sigma = sigma * math.exp(self._tau * self._gauss_generator.generate())
+            return random.choice(tournament[1:])  # Random from the rest
 
+    def _create_new_base_population(self, elite_count=2):
+        # Step 1: Sort the current base population by fitness (best first)
+        self._current_base_population.sort(key=lambda ind: ind.fitness)
 
-            # Mutate each gene in the individual
-        mutated_individual = []
-        for gene in individual:
-            if self._values_representation_type == ValuesRepresentationType.BINARY:
-                # Binary mutation: Flip a random bit
-                mutated_gene = self._mutate_binary_gene(gene)
-            else:
-                # Real-valued mutation: Add Gaussian noise scaled by σ
-                mutated_gene = gene + self._gauss_generator.generate() * mutated_sigma
-            mutated_individual.append(mutated_gene)
+        # Step 2: Select the elite individuals
+        elite_individuals = self._current_base_population[:elite_count]
 
-        return mutated_individual, mutated_sigma
+        # Step 3: Combine the remaining base population and children population
+        combined_population = (
+                self._current_base_population[elite_count:] + self._current_children_population
+        )
 
-    def _mutate_binary_gene(self, gene):
-        binary_gene = self._real_to_binary(gene)
-        bit_to_flip = 1 << self._int_generator.generate()
-        new_binary_gene = binary_gene ^ bit_to_flip
-        return self._binary_to_real(new_binary_gene)
+        # Step 4: Sort the combined population by fitness
+        combined_population.sort(key=lambda ind: ind.fitness)
 
-    def _evaluate_population(self):
-        best_fitness = float("inf")
+        # Step 5: Select individuals to fill the rest with the population (excluding elites)
+        remaining_slots = len(self._current_base_population) - elite_count
+        selected_individuals = combined_population[:remaining_slots]
 
-        for individual, sigma in self._current_population:
-            fitness = self._evaluation_function(individual)
-            if fitness < best_fitness:
-                best_fitness = fitness
-                self._best_solution = individual
-        self._current_best_fitness = best_fitness
+        # Step 6: Update the base population with elites and selected individuals
+        self._current_base_population = elite_individuals + selected_individuals
 
-    def _real_to_binary(self, value):
-        normalized = int(
-            ((value - self._domain_lower_bound) / (self._domain_upper_bound - self._domain_lower_bound)) * (
-                    2 ** self._value_bit_width - 1))
-        return normalized
-
-    def _binary_to_real(self, binary_value):
-        return self._domain_lower_bound + (binary_value / (2 ** self._value_bit_width - 1)) * (
-                self._domain_upper_bound - self._domain_lower_bound)
+    def _recalculate_current_best_fitness(self):
+        current_best_fitness = min(self._current_base_population, key=lambda ind: ind.fitness).fitness
+        if current_best_fitness < self._current_best_fitness:
+            self._current_best_fitness = current_best_fitness
 
     def get_values_representation_type(self):
         return self._values_representation_type.value
@@ -127,23 +96,36 @@ class EvolutionaryAlgorithm:
 
     class Builder:
         def __init__(self):
+
             self._evolutionary_algorithm_instance = EvolutionaryAlgorithm()
+
+            self._evaluation_function = None
+
+            self._domain_lower_bound = None
+            self._domain_upper_bound = None
+
             self._population_size = None
+            self._dimension_size = None
+
 
         def set_dimension_size(self, dimension_size):
-            self._evolutionary_algorithm_instance._dimension = dimension_size
+            self._dimension_size = dimension_size
             return self
 
         def set_lower_bound(self, lower_bound):
-            self._evolutionary_algorithm_instance._domain_lower_bound = lower_bound
+            self._domain_lower_bound = lower_bound
             return self
 
         def set_upper_bound(self, upper_bound):
-            self._evolutionary_algorithm_instance._domain_upper_bound = upper_bound
+            self._domain_upper_bound = upper_bound
             return self
 
         def set_evaluation_function(self, evaluation_function):
-            self._evolutionary_algorithm_instance._evaluation_function = evaluation_function
+            self._evaluation_function = evaluation_function
+            return self
+
+        def set_population_size(self, size):
+            self._population_size = size
             return self
 
         def set_binary_representation_mode(self):
@@ -154,11 +136,34 @@ class EvolutionaryAlgorithm:
             self._evolutionary_algorithm_instance._values_representation_type = ValuesRepresentationType.REAL
             return self
 
-        def set_init_population(self, population):
-            # Initialize each individual as a tuple (x, sigma), where sigma starts at a reasonable value
-            initial_sigma = 1.0  # Default initial step size for all individuals
-            self._evolutionary_algorithm_instance._current_population = [(ind, initial_sigma) for ind in population]
-            return self
+        def _construct_init_population(self):
+            population = []
+
+            # Determine representation type
+            representation_type = self._evolutionary_algorithm_instance._values_representation_type
+
+            individual_class = EvolutionaryAlgorithmBinIndividual if representation_type == ValuesRepresentationType.BINARY else EvolutionaryAlgorithmRealIndividual
+
+            # Generate individuals
+            for _ in range(self._population_size):
+
+                individual_value = [
+                    random.uniform(self._domain_lower_bound, self._domain_upper_bound)
+                    for _ in range(self._dimension_size)
+                ]
+
+                individual = individual_class.Builder() \
+                    .set_value(individual_value) \
+                    .set_evaluation_function(self._evaluation_function) \
+                    .set_lower_bound(self._domain_lower_bound) \
+                    .set_upper_bound(self._domain_upper_bound) \
+                    .build()
+
+                population.append(individual)
+
+            return population
 
         def build(self):
+            self._evolutionary_algorithm_instance._current_base_population  = self._construct_init_population()
+
             return self._evolutionary_algorithm_instance

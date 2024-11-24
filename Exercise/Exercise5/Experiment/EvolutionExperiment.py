@@ -6,7 +6,7 @@ class EvolutionExperiment:
         self._algorithm_instances_list = None
         self._algorithm_instance_template = None
 
-        # self._algorithm_evaluations_per_run = 10_00
+        # self._algorithm_evaluations_per_run = 10_000
         # self._algorithm_repeats_count = 100
 
         self._algorithm_evaluations_per_run = 10_000
