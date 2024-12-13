@@ -20,6 +20,7 @@ class EvolutionaryAlgorithm:
         self._current_base_population = None
         self._current_children_population = []
 
+
         # Representation and solutions
         self._current_best_fitness = float("inf")
 
@@ -30,6 +31,14 @@ class EvolutionaryAlgorithm:
 
         return self._current_best_fitness  # Return best fitness so far
 
+    @property
+    def evaluation_function_call_counter(self):
+        call_counter = 0
+
+        for individual in self._current_children_population:
+            call_counter += individual.evaluation_function_call_counter
+
+        return call_counter
 
     def _create_children_population(self):
         self._current_children_population = []
@@ -101,6 +110,7 @@ class EvolutionaryAlgorithm:
 
             self._evaluation_function = None
 
+
             self._domain_lower_bound = None
             self._domain_upper_bound = None
 
@@ -122,6 +132,12 @@ class EvolutionaryAlgorithm:
 
         def set_evaluation_function(self, evaluation_function):
             self._evaluation_function = evaluation_function
+
+            return self
+
+        def set_max_calls(self, max_calls):
+            self._evolutionary_algorithm_instance._max_calls = max_calls
+
             return self
 
         def set_population_size(self, size):
@@ -139,10 +155,7 @@ class EvolutionaryAlgorithm:
         def _construct_init_population(self):
             population = []
 
-            # Determine representation type
-            representation_type = self._evolutionary_algorithm_instance._values_representation_type
-
-            individual_class = EvolutionaryAlgorithmBinIndividual if representation_type == ValuesRepresentationType.BINARY else EvolutionaryAlgorithmRealIndividual
+            individual_class = self._get_individual_class()
 
             # Generate individuals
             for _ in range(self._population_size):
@@ -162,6 +175,18 @@ class EvolutionaryAlgorithm:
                 population.append(individual)
 
             return population
+
+        def _get_individual_class(self):
+            representation_type = self._evolutionary_algorithm_instance._values_representation_type
+
+            if representation_type == ValuesRepresentationType.BINARY:
+                return EvolutionaryAlgorithmBinIndividual
+            elif representation_type == ValuesRepresentationType.REAL:
+                return EvolutionaryAlgorithmRealIndividual
+            else:
+                raise NotImplementedError(f'Missing individual type for ${representation_type}')
+
+
 
         def build(self):
             self._evolutionary_algorithm_instance._current_base_population  = self._construct_init_population()

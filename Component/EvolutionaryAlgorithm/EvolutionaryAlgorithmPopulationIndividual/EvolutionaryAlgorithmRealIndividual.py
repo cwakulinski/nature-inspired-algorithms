@@ -1,5 +1,3 @@
-import random
-
 from Component.EvolutionaryAlgorithm.EvolutionaryAlgorithmPopulationIndividual.EvolutionaryAlgorithmPopulationIndividual import \
     EvolutionaryAlgorithmPopulationIndividual
 from Component.RandomNumberGenerator.NormalDistNumberGenerator import NormalDistNumberGenerator

@@ -6,6 +6,7 @@ class EvolutionaryAlgorithmPopulationIndividual(ABC):
     def __init__(self):
         self._value = None # int[]
 
+        self._evaluation_function_call_counter = 0 # f(...args)
         self._evaluation_function = None # f(...args)
         self._domain_lower_bound = None # int
         self._domain_upper_bound = None # int
@@ -45,9 +46,18 @@ class EvolutionaryAlgorithmPopulationIndividual(ABC):
     @property
     def fitness(self):
         if self._fitness is None:
-            self._fitness = self._evaluation_function(self.value)
+            self._fitness = self._use_evaluation_function(self.value)
 
         return self._fitness
+
+    @property
+    def evaluation_function_call_counter(self):
+        return self._evaluation_function_call_counter
+
+    def _use_evaluation_function(self, args):
+        self._evaluation_function_call_counter += 1
+
+        return self._evaluation_function(args)
 
     class Builder:
         def __init__(self):
