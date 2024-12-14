@@ -16,6 +16,8 @@ class ValuesRepresentationType(Enum):
 class EvolutionaryAlgorithm:
     def __init__(self):
         # Problem-specific properties
+
+        self._evaluation_function_call_counter = 0
         self._values_representation_type = None
         self._current_base_population = None
         self._current_children_population = []
@@ -32,13 +34,12 @@ class EvolutionaryAlgorithm:
         return self._current_best_fitness  # Return best fitness so far
 
     @property
+    def dimension_size(self):
+        return len(self._current_base_population[0].value)
+
+    @property
     def evaluation_function_call_counter(self):
-        call_counter = 0
-
-        for individual in self._current_children_population:
-            call_counter += individual.evaluation_function_call_counter
-
-        return call_counter
+        return self._evaluation_function_call_counter
 
     def _create_children_population(self):
         self._current_children_population = []
@@ -101,7 +102,18 @@ class EvolutionaryAlgorithm:
         return self._values_representation_type.value
 
     def clone(self):
-        return copy.deepcopy(self)
+        copied_instance = copy.deepcopy(self)
+
+        for individual in copied_instance._current_base_population:
+            individual.update_evaluation_function_call_callback(
+                lambda args: copied_instance._increment_evaluation_function_call_counter()
+            )
+
+        return copied_instance
+
+
+    def _increment_evaluation_function_call_counter(self):
+        self._evaluation_function_call_counter += 1
 
     class Builder:
         def __init__(self):
@@ -168,6 +180,9 @@ class EvolutionaryAlgorithm:
                 individual = individual_class.Builder() \
                     .set_value(individual_value) \
                     .set_evaluation_function(self._evaluation_function) \
+                    .set_evaluation_function_call_callback(
+                    lambda args: self._evolutionary_algorithm_instance._increment_evaluation_function_call_counter()
+                ) \
                     .set_lower_bound(self._domain_lower_bound) \
                     .set_upper_bound(self._domain_upper_bound) \
                     .build()

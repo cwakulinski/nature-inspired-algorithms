@@ -2,15 +2,16 @@ from abc import ABC, abstractmethod
 
 import copy
 
+
 class EvolutionaryAlgorithmPopulationIndividual(ABC):
     def __init__(self):
-        self._value = None # int[]
+        self._value = None  # int[]
 
-        self._evaluation_function_call_counter = 0 # f(...args)
-        self._evaluation_function = None # f(...args)
-        self._domain_lower_bound = None # int
-        self._domain_upper_bound = None # int
-        self._fitness = None #int
+        self._evaluation_function = None  # f(...args)
+        self._evaluation_function_callback = None  # f(...args)
+        self._domain_lower_bound = None  # int
+        self._domain_upper_bound = None  # int
+        self._fitness = None  # int
 
     def clone(self):
         # Create a new instance of the current class
@@ -50,14 +51,16 @@ class EvolutionaryAlgorithmPopulationIndividual(ABC):
 
         return self._fitness
 
-    @property
-    def evaluation_function_call_counter(self):
-        return self._evaluation_function_call_counter
-
     def _use_evaluation_function(self, args):
-        self._evaluation_function_call_counter += 1
+        output = self._evaluation_function(args)
 
-        return self._evaluation_function(args)
+        if self._evaluation_function_callback is not None:
+            self._evaluation_function_callback(output)
+
+        return output
+
+    def update_evaluation_function_call_callback(self, evaluation_function_callback):
+        self._evaluation_function_callback = evaluation_function_callback
 
     class Builder:
         def __init__(self):
@@ -84,6 +87,11 @@ class EvolutionaryAlgorithmPopulationIndividual(ABC):
         def set_evaluation_function(self, evaluation_function):
             self._built_instance._evaluation_function = evaluation_function
             self._built_instance._fitness = None
+
+            return self
+
+        def set_evaluation_function_call_callback(self, evaluation_function_callback):
+            self._built_instance.update_evaluation_function_call_callback(evaluation_function_callback)
 
             return self
 
